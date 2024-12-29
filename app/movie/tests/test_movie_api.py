@@ -47,9 +47,9 @@ class PublicRecipeApiTests(TestCase):
     def test_auth_required(self):
         """Test that authentication is required."""
         payload = {
-        'name': 'Django Unchained',
-        'active': True,
-        'description': 'Test desc',
+            'name': 'Django Unchained',
+            'active': True,
+            'description': 'Test desc',
         }
         res = self.client.post(MOVIE_URL, payload)
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
@@ -65,7 +65,6 @@ class PrivateRecipeApiTests(TestCase):
             password='testpass123'
         )
         self.client.force_authenticate(user=self.user)
-
 
     def test_retrieve_movies(self):
         """Test retrieving a list of movies"""

@@ -16,7 +16,8 @@ from movie.serializers import MovieSerializer
         400: {
             "type": "object",
             "properties": {
-                "error": {"type": "string", "example": "Invalid request payload."},
+                "error": {"type": "string", "example":
+                          "Invalid request payload."},
             },
         },
     },
@@ -63,7 +64,8 @@ class MovieListView(APIView):
         400: {
             "type": "object",
             "properties": {
-                "error": {"type": "string", "example": "Validation error details"},
+                "error": {"type": "string", "example":
+                          "Validation error details"},
             },
         },
     },
@@ -88,7 +90,8 @@ class MovieDetailView(APIView):
         try:
             movie = Movie.objects.get(pk=pk)
         except Movie.DoesNotExist:
-            return Response({"error": "Movie not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Movie not found"},
+                            status=status.HTTP_404_NOT_FOUND)
         serializer = MovieSerializer(movie)
         return Response(serializer.data)
 
@@ -107,7 +110,8 @@ class MovieDetailView(APIView):
         try:
             movie = Movie.objects.get(pk=pk)
         except Movie.DoesNotExist:
-            return Response({"error": "Movie not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Movie not found"},
+                            status=status.HTTP_404_NOT_FOUND)
         movie.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -119,7 +123,8 @@ class MovieDetailView(APIView):
 #         400: {
 #             "type": "object",
 #             "properties": {
-#                 "error": {"type": "string", "example": "Invalid query parameter provided."},
+#                 "error": {"type": "string", "example":
+#                           "Invalid query parameter provided."},
 #             },
 #         },
 #     },
@@ -138,7 +143,8 @@ class MovieDetailView(APIView):
 #         if serializer.is_valid():
 #             serializer.save()
 #             return Response(serializer.data, status=status.HTTP_201_CREATED)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#         return Response(serializer.errors,
+#         status=status.HTTP_400_BAD_REQUEST)
 #
 #
 # @extend_schema(
@@ -149,7 +155,8 @@ class MovieDetailView(APIView):
 #         400: {
 #             "type": "object",
 #             "properties": {
-#                 "error": {"type": "string", "example": "Validation error details"},
+#                 "error": {"type": "string", "example":
+#                           "Validation error details"},
 #             },
 #         },
 #         404: {
@@ -178,7 +185,8 @@ class MovieDetailView(APIView):
 #         if serializer.is_valid():
 #             serializer.save()
 #             return Response(serializer.data, status=status.HTTP_200_OK)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#         return Response(serializer.errors,
+#         status=status.HTTP_400_BAD_REQUEST)
 #
 #     elif request.method == 'DELETE':
 #         movie.delete()
