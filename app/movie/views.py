@@ -47,7 +47,7 @@ class MovieListView(APIView):
     def post(self, request, format=None):
         serializer = MovieSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(user=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -99,10 +99,11 @@ class MovieDetailView(APIView):
         try:
             movie = Movie.objects.get(pk=pk)
         except Movie.DoesNotExist:
-            return Response({"error": "Movie not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"error": "Movie not found"},
+                            status=status.HTTP_404_NOT_FOUND)
         serializer = MovieSerializer(movie, data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(user=request.user)
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -112,7 +113,7 @@ class MovieDetailView(APIView):
         except Movie.DoesNotExist:
             return Response({"error": "Movie not found"},
                             status=status.HTTP_404_NOT_FOUND)
-        movie.delete()
+        movie.delete(user=request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 # @extend_schema(
