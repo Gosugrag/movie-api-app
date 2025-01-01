@@ -8,20 +8,20 @@ from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIClient
 
-from core.models import Movie
+from core.models import WatchList
 
-from movie.serializers import MovieSerializer
+from movie.serializers import WatchListSerializer
 
 
-MOVIE_URL = reverse('movie:movie-list')
+WATCHLIST_URL = reverse('watchlist:watchlist-list')
 
 
 def detail_url(movie_id):
-    return reverse('movie:movie-detail', args=[movie_id])
+    return reverse('watchlist:watchlist-detail', args=[movie_id])
 
 
-def create_movie(user, **params):
-    """Create and return a new movie"""
+def create_watchlist(user, **params):
+    """Create and return a new watchlist"""
     defaults = {
         'name': 'Django Unchained',
         'active': True,
@@ -29,7 +29,7 @@ def create_movie(user, **params):
     }
     defaults.update(params)
 
-    recipe = Movie.objects.create(user=user, **defaults)
+    recipe = WatchList.objects.create(user=user, **defaults)
     return recipe
 
 
@@ -39,7 +39,7 @@ def create_user(**params):
 
 
 class PublicRecipeApiTests(TestCase):
-    """Test unauthenticated movie API requests."""
+    """Test unauthenticated watchlist API requests."""
 
     def setUp(self):
         self.client = APIClient()

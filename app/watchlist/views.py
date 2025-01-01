@@ -5,32 +5,19 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.authentication import BasicAuthentication
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from core.models import Movie
-from movie.serializers import MovieSerializer
+from core.models import WatchList, StreamingPlatform
+from watchlist.serializers import (WatchListSerializer,
+                                   StreamingPlatformSerializer)
 
 
-@extend_schema(
-    responses={
-        200: MovieSerializer(many=True),
-        201: MovieSerializer,
-        400: {
-            "type": "object",
-            "properties": {
-                "error": {"type": "string", "example":
-                          "Invalid request payload."},
-            },
-        },
-    },
-    description="List all movies or create a new movie.",
-)
-class MovieListView(APIView):
+class WatchListView(APIView):
     """API view for listing Movie object"""
-    serializer_class = MovieSerializer
+    serializer_class = WatchListSerializer
     authentication_classes = (BasicAuthentication,)
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
-        return Movie.objects.all().order_by('name')
+        return WatchList.objects.all().order_by('title')
 
     def get_permissions(self):
         permissions = {
@@ -40,40 +27,21 @@ class MovieListView(APIView):
         return permissions.get(self.request.method, [AllowAny()])
 
     def get(self, request, format=None):
-        movies = Movie.objects.all()
-        serializer = MovieSerializer(movies, many=True)
+        watchlist = WatchList.objects.all()
+        serializer = WatchListSerializer(watchlist, many=True)
         return Response(serializer.data)
 
     def post(self, request, format=None):
-        serializer = MovieSerializer(data=request.data)
+        serializer = WatchListSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             serializer.save(user=request.user)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@extend_schema(
-    responses={
-        200: MovieSerializer,
-        404: {
-            "type": "object",
-            "properties": {
-                "error": {"type": "string", "example": "Movie not found"},
-            },
-        },
-        400: {
-            "type": "object",
-            "properties": {
-                "error": {"type": "string", "example":
-                          "Validation error details"},
-            },
-        },
-    },
-    description="Retrieve, update, or delete a specific movie by its ID.",
-)
-class MovieDetailView(APIView):
-    """API view for retrieving, changing and deleting Movie object by id"""
-    serializer_class = MovieSerializer
+class WatchListDetailView(APIView):
+    """API view for retrieving, changing and deleting Movie object"""
+    serializer_class = WatchListSerializer
     authentication_classes = (BasicAuthentication,)
     permission_classes = (IsAuthenticated,)
 
@@ -88,20 +56,20 @@ class MovieDetailView(APIView):
 
     def get(self, request, pk, format=None):
         try:
-            movie = Movie.objects.get(pk=pk)
-        except Movie.DoesNotExist:
+            movie = WatchList.objects.get(pk=pk)
+        except WatchList.DoesNotExist:
             return Response({"error": "Movie not found"},
                             status=status.HTTP_404_NOT_FOUND)
-        serializer = MovieSerializer(movie)
+        serializer = WatchListSerializer(movie)
         return Response(serializer.data)
 
     def put(self, request, pk, format=None):
         try:
-            movie = Movie.objects.get(pk=pk)
-        except Movie.DoesNotExist:
+            movie = WatchList.objects.get(pk=pk)
+        except WatchList.DoesNotExist:
             return Response({"error": "Movie not found"},
                             status=status.HTTP_404_NOT_FOUND)
-        serializer = MovieSerializer(movie, data=request.data)
+        serializer = WatchListSerializer(movie, data=request.data)
         if serializer.is_valid():
             serializer.save(user=request.user)
             return Response(serializer.data)
@@ -109,12 +77,82 @@ class MovieDetailView(APIView):
 
     def delete(self, request, pk,  format=None):
         try:
-            movie = Movie.objects.get(pk=pk)
-        except Movie.DoesNotExist:
+            movie = WatchList.objects.get(pk=pk)
+        except WatchList.DoesNotExist:
             return Response({"error": "Movie not found"},
                             status=status.HTTP_404_NOT_FOUND)
         movie.delete(user=request.user)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class StreamingPlatformListView(APIView):
+    """API view for retrieving and creating StreamingPlarformView object by id"""
+    serializer_class = StreamingPlatformSerializer
+    authentication_classes = (BasicAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def get_permissions(self):
+        permissions = {
+            'POST': [IsAuthenticated()],
+            'GET': [AllowAny()],
+        }
+        return permissions.get(self.request.method, [AllowAny()])
+
+    def get(self, request, format=None):
+        streaming_platform_list = StreamingPlatform.objects.all().order_by('title')
+        serializer = self.serializer_class(streaming_platform_list, many=True)
+        return Response(serializer.data)
+
+    def post(self, request, format=None):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class StreamingPlatformDetailView(APIView):
+    """API view for retrieving, changing and deleting StreamingPlatformView object"""
+    serializer_class = StreamingPlatformSerializer
+    authentication_classes = (BasicAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def get_permissions(self):
+        permissions = {
+            'POST': [IsAuthenticated()],
+            'PUT': [IsAuthenticated()],
+            'DELETE': [IsAuthenticated()],
+            'GET': [AllowAny()],
+        }
+        return permissions.get(self.request.method, [AllowAny()])
+
+    def get(self, request, pk, format=None):
+        try:
+            platform = StreamingPlatform.objects.get(pk=pk)
+        except StreamingPlatform.DoesNotExist:
+            return Response({"error": "Movie not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = self.serializer_class(platform)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request, pk, format=None):
+        try:
+            platform = StreamingPlatform.objects.get(pk=pk)
+        except StreamingPlatform.DoesNotExist:
+            return Response({"error": "Movie not found"}, status=status.HTTP_404_NOT_FOUND)
+        serializer = self.serializer_class(platform, data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk, format=None):
+        try:
+            platform = StreamingPlatform.objects.get(pk=pk)
+        except StreamingPlatform.DoesNotExist:
+            return Response({"error": "Movie not found"}, status=status.HTTP_404_NOT_FOUND)
+        platform.delete(user=request.user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 # @extend_schema(
 #     request=MovieSerializer,  # Request schema for POST
