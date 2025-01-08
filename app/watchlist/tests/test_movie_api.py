@@ -51,7 +51,7 @@ class PublicRecipeApiTests(TestCase):
             'active': True,
             'description': 'Test desc',
         }
-        res = self.client.post(MOVIE_URL, payload)
+        res = self.client.post(WATCHLIST_URL, payload)
         self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
 
 
@@ -70,7 +70,7 @@ class PrivateRecipeApiTests(TestCase):
         """Test retrieving a list of movies"""
         for i in range(9):
             create_movie(self.user)
-        res = self.client.get(MOVIE_URL)
+        res = self.client.get(WATCHLIST_URL)
 
         movies = Movie.objects.all().order_by('name')
         serializer = MovieSerializer(movies, many=True)

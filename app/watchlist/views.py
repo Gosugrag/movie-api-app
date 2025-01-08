@@ -1,30 +1,135 @@
 # from rest_framework.decorators import api_view
 from drf_spectacular.utils import extend_schema
+from django.db.models import Avg, Count
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from rest_framework.views import APIView
-from rest_framework import status
-from rest_framework.authentication import BasicAuthentication
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from core.models import WatchList, StreamingPlatform
+from rest_framework import status, viewsets
+from core.permissions import IsOwnerOrReadOnly
+from rest_framework import mixins
+from rest_framework import generics
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.authentication import (BasicAuthentication,
+                                           TokenAuthentication)
+from rest_framework.permissions import (IsAuthenticated, AllowAny,
+                                        IsAuthenticatedOrReadOnly,
+                                        IsAdminUser,
+                                        IsAdminOrReadOnly)
+from core.models import WatchList, StreamingPlatform, Review
 from watchlist.serializers import (WatchListSerializer,
-                                   StreamingPlatformSerializer)
+                                   StreamingPlatformSerializer,
+                                   ReviewSerializer)
+
+
+class ReviewListView(mixins.ListModelMixin,
+                     mixins.CreateModelMixin,
+                     generics.GenericAPIView):
+    """API view for listing Review object"""
+    serializer_class = ReviewSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticatedOrReadOnly|IsAdminUser,)
+
+    def get_queryset(self):
+        pk = self.kwargs.get('pk')
+        return Review.objects.filter(watchlist=pk)
+
+    # def get_permissions(self):
+    #     permissions = {
+    #         'POST': [IsAuthenticated()],
+    #         'GET': [AllowAny()],
+    #     }
+    #     return permissions.get(self.request.method, [AllowAny()])
+
+    def perform_create(self, serializer):
+        watchlist_pk = self.kwargs.get('pk')
+        watchlist = get_object_or_404(WatchList, pk=watchlist_pk)
+
+        review_user = self.request.user
+        review_queryset_exist = Review.objects.filter(watchlist=watchlist, user=review_user).exists()
+
+        if review_queryset_exist:
+            raise ValidationError('Review already exists')
+
+        serializer.save(user=review_user, watchlist=watchlist)
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
+
+
+
+class ReviewDetailView(mixins.RetrieveModelMixin,
+                       mixins.UpdateModelMixin,
+                       mixins.DestroyModelMixin,
+                       generics.GenericAPIView):
+    """API view for retrieving Review object"""
+    serializer_class = ReviewSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsOwnerOrReadOnly|IsAdminUser,)
+    lookup_field = 'id'
+    lookup_url_kwarg = 'review_pk'
+
+    # def get_permissions(self):
+    #     permissions = {
+    #         'POST': [IsAuthenticated()],
+    #         'PUT': [IsAuthenticated()],
+    #         'DELETE': [IsAuthenticated()],
+    #         'GET': [AllowAny()],
+    #     }
+    #     return permissions.get(self.request.method, [AllowAny()])
+
+    def get_queryset(self):
+        watch_pk = self.kwargs.get('watch_pk')
+        return Review.objects.filter(watchlist=watch_pk)
+
+    def perform_update(self, serializer):
+        watch_pk = self.kwargs.get('watch_pk')
+        watchlist = get_object_or_404(WatchList, pk=watch_pk)
+        serializer.save(watchlist=watchlist)
+
+    def perform_destroy(self, instance):
+        watch_pk = self.kwargs.get('watch_pk')
+        get_object_or_404(WatchList, pk=watch_pk)
+        instance.delete()
+
+    # def get_object(self):
+    #     queryset = self.filter_queryset(self.get_queryset())
+    #     review_pk = self.kwargs.get('review_pk')
+    #     obj = generics.get_object_or_404(queryset, id=review_pk)
+    #     self.check_object_permissions(self.request, obj)
+    #     return obj
+
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    def delete(self, request, *args, **kwargs):
+        return self.destroy(request, *args, **kwargs)
 
 
 class WatchListView(APIView):
     """API view for listing Movie object"""
     serializer_class = WatchListSerializer
-    authentication_classes = (BasicAuthentication,)
-    permission_classes = (IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAdminOrReadOnly,)
 
     def get_queryset(self):
-        return WatchList.objects.all().order_by('title')
+        return WatchList.objects.all().order_by('title').annotate(
+            average_rating=Avg('reviews__rating'),
+            total_reviews=Count('reviews')
+        )
 
-    def get_permissions(self):
-        permissions = {
-            'POST': [IsAuthenticated()],
-            'GET': [AllowAny()],
-        }
-        return permissions.get(self.request.method, [AllowAny()])
+    # def get_permissions(self):
+    #     permissions = {
+    #         'POST': [IsAuthenticated()],
+    #         'GET': [AllowAny()],
+    #     }
+    #     return permissions.get(self.request.method, [AllowAny()])
 
     def get(self, request, format=None):
         watchlist = WatchList.objects.all()
@@ -42,17 +147,17 @@ class WatchListView(APIView):
 class WatchListDetailView(APIView):
     """API view for retrieving, changing and deleting Movie object"""
     serializer_class = WatchListSerializer
-    authentication_classes = (BasicAuthentication,)
-    permission_classes = (IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAdminOrReadOnly,)
 
-    def get_permissions(self):
-        permissions = {
-            'POST': [IsAuthenticated()],
-            'PUT': [IsAuthenticated()],
-            'DELETE': [IsAuthenticated()],
-            'GET': [AllowAny()],
-        }
-        return permissions.get(self.request.method, [AllowAny()])
+    # def get_permissions(self):
+    #     permissions = {
+    #         'POST': [IsAuthenticated()],
+    #         'PUT': [IsAuthenticated()],
+    #         'DELETE': [IsAuthenticated()],
+    #         'GET': [AllowAny()],
+    #     }
+    #     return permissions.get(self.request.method, [AllowAny()])
 
     def get(self, request, pk, format=None):
         try:
@@ -81,77 +186,91 @@ class WatchListDetailView(APIView):
         except WatchList.DoesNotExist:
             return Response({"error": "Movie not found"},
                             status=status.HTTP_404_NOT_FOUND)
-        movie.delete(user=request.user)
+        movie.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-class StreamingPlatformListView(APIView):
-    """API view for retrieving and creating StreamingPlarformView object by id"""
+class StreamingPlatformViewSet(viewsets.ModelViewSet):
+    """API view for listing and managing Streaming Platform objects"""
     serializer_class = StreamingPlatformSerializer
-    authentication_classes = (BasicAuthentication,)
-    permission_classes = (IsAuthenticated,)
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAdminOrReadOnly,)
+    queryset = StreamingPlatform.objects.all().order_by('id')
 
-    def get_permissions(self):
-        permissions = {
-            'POST': [IsAuthenticated()],
-            'GET': [AllowAny()],
-        }
-        return permissions.get(self.request.method, [AllowAny()])
-
-    def get(self, request, format=None):
-        streaming_platform_list = StreamingPlatform.objects.all().order_by('title')
-        serializer = self.serializer_class(streaming_platform_list, many=True)
-        return Response(serializer.data)
-
-    def post(self, request, format=None):
-        serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            serializer.save(user=request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def perform_create(self, serializer):
+        """Save the user creating the object."""
+        serializer.save(user=self.request.user)
 
 
-class StreamingPlatformDetailView(APIView):
-    """API view for retrieving, changing and deleting StreamingPlatformView object"""
-    serializer_class = StreamingPlatformSerializer
-    authentication_classes = (BasicAuthentication,)
-    permission_classes = (IsAuthenticated,)
-
-    def get_permissions(self):
-        permissions = {
-            'POST': [IsAuthenticated()],
-            'PUT': [IsAuthenticated()],
-            'DELETE': [IsAuthenticated()],
-            'GET': [AllowAny()],
-        }
-        return permissions.get(self.request.method, [AllowAny()])
-
-    def get(self, request, pk, format=None):
-        try:
-            platform = StreamingPlatform.objects.get(pk=pk)
-        except StreamingPlatform.DoesNotExist:
-            return Response({"error": "Movie not found"}, status=status.HTTP_404_NOT_FOUND)
-        serializer = self.serializer_class(platform)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def put(self, request, pk, format=None):
-        try:
-            platform = StreamingPlatform.objects.get(pk=pk)
-        except StreamingPlatform.DoesNotExist:
-            return Response({"error": "Movie not found"}, status=status.HTTP_404_NOT_FOUND)
-        serializer = self.serializer_class(platform, data=request.data)
-        if serializer.is_valid():
-            serializer.save(user=request.user)
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, pk, format=None):
-        try:
-            platform = StreamingPlatform.objects.get(pk=pk)
-        except StreamingPlatform.DoesNotExist:
-            return Response({"error": "Movie not found"}, status=status.HTTP_404_NOT_FOUND)
-        platform.delete(user=request.user)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+# class StreamingPlatformListView(APIView):
+#     """API view for retrieving and creating StreamingPlarformView object by id"""
+#     serializer_class = StreamingPlatformSerializer
+#     authentication_classes = (BasicAuthentication,)
+#     permission_classes = (IsAuthenticated,)
+#
+#     def get_permissions(self):
+#         permissions = {
+#             'POST': [IsAuthenticated()],
+#             'PUT': [IsAuthenticated()],
+#             'DELETE': [IsAuthenticated()],
+#             'GET': [AllowAny()],
+#         }
+#         return permissions.get(self.request.method, [AllowAny()])
+#
+#     def get(self, request, format=None):
+#         streaming_platform_list = StreamingPlatform.objects.all().order_by('name')
+#         serializer = self.serializer_class(streaming_platform_list, many=True, context={'request': request})
+#         return Response(serializer.data)
+#
+#     def post(self, request, format=None):
+#         serializer = self.serializer_class(data=request.data)
+#         if serializer.is_valid():
+#             serializer.save(user=request.user)
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#
+#
+# class StreamingPlatformDetailView(APIView):
+#     """API view for retrieving, changing and deleting StreamingPlatformView object"""
+#     serializer_class = StreamingPlatformSerializer
+#     authentication_classes = (BasicAuthentication,)
+#     permission_classes = (IsAuthenticated,)
+#
+#     def get_permissions(self):
+#         permissions = {
+#             'POST': [IsAuthenticated()],
+#             'PUT': [IsAuthenticated()],
+#             'DELETE': [IsAuthenticated()],
+#             'GET': [AllowAny()],
+#         }
+#         return permissions.get(self.request.method, [AllowAny()])
+#
+#     def get(self, request, pk, format=None):
+#         try:
+#             platform = StreamingPlatform.objects.get(pk=pk)
+#         except StreamingPlatform.DoesNotExist:
+#             return Response({"error": "Movie not found"}, status=status.HTTP_404_NOT_FOUND)
+#         serializer = self.serializer_class(platform)
+#         return Response(serializer.data, status=status.HTTP_200_OK)
+#
+#     def put(self, request, pk, format=None):
+#         try:
+#             platform = StreamingPlatform.objects.get(pk=pk)
+#         except StreamingPlatform.DoesNotExist:
+#             return Response({"error": "Movie not found"}, status=status.HTTP_404_NOT_FOUND)
+#         serializer = self.serializer_class(platform, data=request.data)
+#         if serializer.is_valid():
+#             serializer.save(user=request.user)
+#             return Response(serializer.data)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#
+#     def delete(self, request, pk, format=None):
+#         try:
+#             platform = StreamingPlatform.objects.get(pk=pk)
+#         except StreamingPlatform.DoesNotExist:
+#             return Response({"error": "Movie not found"}, status=status.HTTP_404_NOT_FOUND)
+#         platform.delete(user=request.user)
+#         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 # @extend_schema(
