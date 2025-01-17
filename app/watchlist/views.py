@@ -138,8 +138,7 @@ class WatchListView(mixins.ListModelMixin,
                     generics.GenericAPIView):
     """API view for listing Movie object"""
     serializer_class = WatchListSerializer
-    # JWTAuthentication
-    authentication_classes = (TokenAuthentication|JWTAuthentication, )
+    authentication_classes = (TokenAuthentication,) # JWTAuthentication
     permission_classes = (IsAdminOrReadOnly,)
     throttle_scope = 'burst'
     filter_backends = (DjangoFilterBackend, filters.SearchFilter,
