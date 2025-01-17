@@ -73,5 +73,6 @@ class ModelTests(TestCase):
 
         self.assertEqual(review.rating, 5)
         self.assertEqual(review.active, True)
-        self.assertEqual(str(review), str(review.rating) + ' | ' +
-                         review.watchlist.title)
+        self.assertEqual(
+            str(review), str(review.rating) + ' | ' + review.watchlist.title
+        )
