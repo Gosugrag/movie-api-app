@@ -13,7 +13,7 @@ from watchlist.serializers import ReviewSerializer
 
 
 def REVIEW_URL(pk):
-    reverse('watch:reviews-list', kwargs={'pk': pk})
+    return reverse('watch:reviews-list', kwargs={'pk': pk})
 
 
 def create_user(**params):
