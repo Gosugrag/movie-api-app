@@ -10,7 +10,7 @@ from rest_framework import generics
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from core.pagination import WatchListPagination
-from rest_framework_simplejwt.authentication import JWTAuthentication
+# from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import (IsAuthenticatedOrReadOnly,
                                         IsAdminUser)
@@ -44,7 +44,7 @@ class ReviewListView(mixins.ListModelMixin,
     """API view for listing Review object"""
     serializer_class = ReviewSerializer
     authentication_classes = (TokenAuthentication,)
-    permission_classes = (IsAuthenticatedOrReadOnly|IsAdminUser,)
+    permission_classes = (IsAuthenticatedOrReadOnly | IsAdminUser,)
     filter_backends = (DjangoFilterBackend,)
     filterset_fields = ('user',)
 
@@ -81,7 +81,6 @@ class ReviewListView(mixins.ListModelMixin,
         return self.create(request, *args, **kwargs)
 
 
-
 class ReviewDetailView(mixins.RetrieveModelMixin,
                        mixins.UpdateModelMixin,
                        mixins.DestroyModelMixin,
@@ -89,7 +88,7 @@ class ReviewDetailView(mixins.RetrieveModelMixin,
     """API view for retrieving Review object"""
     serializer_class = ReviewSerializer
     authentication_classes = (TokenAuthentication,)
-    permission_classes = (IsOwnerOrReadOnly|IsAdminUser,)
+    permission_classes = (IsOwnerOrReadOnly | IsAdminUser,)
     lookup_field = 'id'
     lookup_url_kwarg = 'review_pk'
 
@@ -138,12 +137,12 @@ class WatchListView(mixins.ListModelMixin,
                     generics.GenericAPIView):
     """API view for listing Movie object"""
     serializer_class = WatchListSerializer
-    authentication_classes = (TokenAuthentication,) # JWTAuthentication
+    authentication_classes = (TokenAuthentication,)  # JWTAuthentication
     permission_classes = (IsAdminOrReadOnly,)
     throttle_scope = 'burst'
     filter_backends = (DjangoFilterBackend, filters.SearchFilter,
                        filters.OrderingFilter,)
-    filterset_fields = ('active','platform__name',)
+    filterset_fields = ('active', 'platform__name',)
     search_fields = ('user__name', 'platform__name',)
     ordering_fields = ('user__name', 'platform__name', 'title')
     pagination_class = WatchListPagination

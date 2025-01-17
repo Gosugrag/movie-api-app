@@ -12,8 +12,8 @@ from core.models import Review, WatchList, StreamingPlatform
 from watchlist.serializers import ReviewSerializer
 
 
-REVIEW_URL = lambda pk: reverse('watch:reviews-list',
-                                kwargs={'pk': pk})
+def REVIEW_URL(pk):
+    reverse('watch:reviews-list', kwargs={'pk': pk})
 
 
 def create_user(**params):

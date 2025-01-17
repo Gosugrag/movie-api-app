@@ -58,7 +58,7 @@ class WatchList(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL,
                              on_delete=models.CASCADE)
-    average_rating = models.FloatField(validators=[MinValueValidator(0),],
+    average_rating = models.FloatField(validators=[MinValueValidator(0)],
                                        default=None,
                                        null=True)
     total_reviews = models.PositiveIntegerField(default=0)
@@ -79,7 +79,8 @@ class Review(models.Model):
                                   on_delete=models.CASCADE,
                                   related_name='reviews',
                                   default=None)
-    rating = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(5)])
+    rating = models.IntegerField(validators=[MinValueValidator(1),
+                                             MaxValueValidator(5)])
     description = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

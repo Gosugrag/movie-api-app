@@ -188,9 +188,9 @@ class PrivateUserTests(TestCase):
         res = self.client.get(ME_URL)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual({'name': res.data.get('name'),
-                          'email': res.data.get('email'),},
+                          'email': res.data.get('email')},
                          {'name': self.user.name,
-                          'email': self.user.email,})
+                          'email': self.user.email})
 
     def test_post_me_not_allowed(self):
         """Test that POST is not allowed for this endpoint"""

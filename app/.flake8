@@ -1,5 +1,6 @@
 
 [flake8]
+per-file-ignores = signals.py:F401
 exclude =
     migrations,
     __pycache__,
