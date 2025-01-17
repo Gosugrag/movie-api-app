@@ -45,7 +45,8 @@ class ModelTests(TestCase):
         )
 
         self.assertEqual(streaming_platform.name, 'Test Streaming Platform')
-        self.assertEqual(streaming_platform.about, 'Test About Streaming Platform')
+        self.assertEqual(streaming_platform.about,
+                         'Test About Streaming Platform')
         self.assertEqual(streaming_platform.website, 'http://www.test.com')
         self.assertEqual(str(streaming_platform), streaming_platform.name)
 
@@ -72,4 +73,5 @@ class ModelTests(TestCase):
 
         self.assertEqual(review.rating, 5)
         self.assertEqual(review.active, True)
-        self.assertEqual(str(review), str(review.rating) + ' | ' + review.watchlist.title)
+        self.assertEqual(str(review), str(review.rating) + ' | ' +
+                         review.watchlist.title)

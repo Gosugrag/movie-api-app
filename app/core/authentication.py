@@ -4,6 +4,7 @@ from datetime import timedelta, datetime
 from rest_framework import exceptions
 from rest_framework.authentication import TokenAuthentication
 
+
 class ExpiringTokenAuthentication(TokenAuthentication):
     def authenticate_credentials(self, key):
         try:

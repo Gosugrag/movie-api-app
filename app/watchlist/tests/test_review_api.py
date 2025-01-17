@@ -1,22 +1,19 @@
 """
 Tests for the streaming platform API
 """
-from sys import platform
-
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from django.test import TestCase
+from django.test import TestCase, RequestFactory
 
 from rest_framework import status
 from rest_framework.test import APIClient
 
 from core.models import Review, WatchList, StreamingPlatform
 from watchlist.serializers import ReviewSerializer
-from unittest.mock import Mock
-from django.test import RequestFactory
 
 
-REVIEW_URL = lambda pk: reverse('watch:reviews-list', kwargs={'pk': pk})
+REVIEW_URL = lambda pk: reverse('watch:reviews-list',
+                                kwargs={'pk': pk})
 
 
 def create_user(**params):
@@ -24,7 +21,7 @@ def create_user(**params):
     return get_user_model().objects.create_user(**params)
 
 
-def create_review(user,**params):
+def create_review(user, **params):
     defaults = {
         'rating': '5',
         'description': 'Normis',
@@ -48,7 +45,7 @@ def create_review(user,**params):
     return review
 
 
-def create_watchlist(user, **params):
+def create_watchlist(user):
     watchlist = WatchList.objects.create(
         user=user,
         title='Normis',
@@ -65,8 +62,8 @@ def create_watchlist(user, **params):
 
 
 def detail_url(watch_pk, review_pk):
-    return reverse('watch:reviews-detail', kwargs={'watch_pk': watch_pk, 'review_pk': review_pk})
-
+    return reverse('watch:reviews-detail',
+                   kwargs={'watch_pk': watch_pk, 'review_pk': review_pk})
 
 
 class ReviewPublicAPITests(TestCase):
@@ -114,7 +111,9 @@ class ReviewPrivateAPITests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
         # Verify pagination and data
-        reviews = Review.objects.filter(watchlist=watchlist).order_by('-created_at')
+        reviews = Review.objects.filter(watchlist=watchlist).order_by(
+            '-created_at'
+        )
         serializer = ReviewSerializer(reviews, many=True)
 
         self.assertEqual(res.data['results'], serializer.data)
@@ -153,7 +152,8 @@ class ReviewPrivateAPITests(TestCase):
         serializer = ReviewSerializer(review)
         reviews = Review.objects.filter(watchlist=watchlist)
         self.assertEqual(reviews.count(), 2)
-        self.assertEqual(res.data['description'], serializer.data['description'])
+        self.assertEqual(res.data['description'],
+                         serializer.data['description'])
 
     def test_alter_review(self):
         """Test updating a review"""
@@ -166,13 +166,15 @@ class ReviewPrivateAPITests(TestCase):
             'rating': 5,
         }
 
-        res = self.client.put(detail_url(watch_pk=watchlist.id, review_pk=review.id), payload)
+        res = self.client.put(detail_url(watch_pk=watchlist.id,
+                                         review_pk=review.id), payload)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
         review.refresh_from_db()
         serializer = ReviewSerializer(review)
 
-        self.assertEqual(res.data['description'], serializer.data['description'])
+        self.assertEqual(res.data['description'],
+                         serializer.data['description'])
         self.assertEqual(res.data['active'], serializer.data['active'])
 
     def test_retrieve_review(self):

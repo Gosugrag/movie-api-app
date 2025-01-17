@@ -4,7 +4,6 @@ from django.conf import settings
 from django.contrib.auth.models import (AbstractBaseUser,
                                         BaseUserManager,
                                         PermissionsMixin)
-from django.contrib.auth import get_user_model
 
 
 class UserManager(BaseUserManager):
@@ -68,7 +67,6 @@ class WatchList(models.Model):
                                  related_name='watchlist',
                                  default=None,
                                  null=True)
-
 
     def __str__(self):
         return self.title

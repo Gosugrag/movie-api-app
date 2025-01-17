@@ -1,6 +1,4 @@
 # from rest_framework.decorators import api_view
-from drf_spectacular.utils import extend_schema
-from django.db.models import Avg, Count
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError, PermissionDenied
@@ -13,11 +11,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from core.pagination import WatchListPagination
 from rest_framework_simplejwt.authentication import JWTAuthentication
-from rest_framework.authentication import (BasicAuthentication,
-                                           TokenAuthentication)
-from rest_framework.permissions import (IsAuthenticated,
-                                        AllowAny,
-                                        IsAuthenticatedOrReadOnly,
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import (IsAuthenticatedOrReadOnly,
                                         IsAdminUser)
 from core.models import WatchList, StreamingPlatform, Review
 from watchlist.serializers import (WatchListSerializer,
@@ -69,7 +64,10 @@ class ReviewListView(mixins.ListModelMixin,
         watchlist = get_object_or_404(WatchList, pk=watchlist_pk)
 
         review_user = self.request.user
-        review_queryset_exist = Review.objects.filter(watchlist=watchlist, user=review_user).exists()
+        review_queryset_exist = Review.objects.filter(
+            watchlist=watchlist,
+            user=review_user
+        ).exists()
 
         if review_queryset_exist:
             raise ValidationError('Review already exists')
@@ -140,10 +138,12 @@ class WatchListView(mixins.ListModelMixin,
                     generics.GenericAPIView):
     """API view for listing Movie object"""
     serializer_class = WatchListSerializer
-    authentication_classes = (TokenAuthentication,) # JWTAuthentication
+    # JWTAuthentication
+    authentication_classes = (TokenAuthentication|JWTAuthentication, )
     permission_classes = (IsAdminOrReadOnly,)
     throttle_scope = 'burst'
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter,)
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter,
+                       filters.OrderingFilter,)
     filterset_fields = ('active','platform__name',)
     search_fields = ('user__name', 'platform__name',)
     ordering_fields = ('user__name', 'platform__name', 'title')
@@ -246,7 +246,9 @@ class StreamingPlatformViewSet(viewsets.ModelViewSet):
 
 
 # class StreamingPlatformListView(APIView):
-#     """API view for retrieving and creating StreamingPlarformView object by id"""
+#     """
+#     API view for retrieving and creating StreamingPlarformView object by id
+#     """
 #     serializer_class = StreamingPlatformSerializer
 #     authentication_classes = (BasicAuthentication,)
 #     permission_classes = (IsAuthenticated,)
@@ -261,8 +263,10 @@ class StreamingPlatformViewSet(viewsets.ModelViewSet):
 #         return permissions.get(self.request.method, [AllowAny()])
 #
 #     def get(self, request, format=None):
-#         streaming_platform_list = StreamingPlatform.objects.all().order_by('name')
-#         serializer = self.serializer_class(streaming_platform_list, many=True, context={'request': request})
+#         streaming_platform_list = StreamingPlatform.objects.all().
+#         order_by('name')
+#         serializer = self.serializer_class(streaming_platform_list,
+#         many=True, context={'request': request})
 #         return Response(serializer.data)
 #
 #     def post(self, request, format=None):
@@ -270,11 +274,15 @@ class StreamingPlatformViewSet(viewsets.ModelViewSet):
 #         if serializer.is_valid():
 #             serializer.save(user=request.user)
 #             return Response(serializer.data, status=status.HTTP_201_CREATED)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#         return Response(serializer.errors,
+#         status=status.HTTP_400_BAD_REQUEST)
 #
 #
 # class StreamingPlatformDetailView(APIView):
-#     """API view for retrieving, changing and deleting StreamingPlatformView object"""
+#     """
+#     API view for retrieving, changing and
+#     deleting StreamingPlatformView object
+#     """
 #     serializer_class = StreamingPlatformSerializer
 #     authentication_classes = (BasicAuthentication,)
 #     permission_classes = (IsAuthenticated,)
@@ -292,7 +300,8 @@ class StreamingPlatformViewSet(viewsets.ModelViewSet):
 #         try:
 #             platform = StreamingPlatform.objects.get(pk=pk)
 #         except StreamingPlatform.DoesNotExist:
-#             return Response({"error": "Movie not found"}, status=status.HTTP_404_NOT_FOUND)
+#             return Response({"error": "Movie not found"},
+#             status=status.HTTP_404_NOT_FOUND)
 #         serializer = self.serializer_class(platform)
 #         return Response(serializer.data, status=status.HTTP_200_OK)
 #
@@ -300,18 +309,21 @@ class StreamingPlatformViewSet(viewsets.ModelViewSet):
 #         try:
 #             platform = StreamingPlatform.objects.get(pk=pk)
 #         except StreamingPlatform.DoesNotExist:
-#             return Response({"error": "Movie not found"}, status=status.HTTP_404_NOT_FOUND)
+#             return Response({"error": "Movie not found"},
+#             status=status.HTTP_404_NOT_FOUND)
 #         serializer = self.serializer_class(platform, data=request.data)
 #         if serializer.is_valid():
 #             serializer.save(user=request.user)
 #             return Response(serializer.data)
-#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#         return Response(serializer.errors,
+#         status=status.HTTP_400_BAD_REQUEST)
 #
 #     def delete(self, request, pk, format=None):
 #         try:
 #             platform = StreamingPlatform.objects.get(pk=pk)
 #         except StreamingPlatform.DoesNotExist:
-#             return Response({"error": "Movie not found"}, status=status.HTTP_404_NOT_FOUND)
+#             return Response({"error": "Movie not found"},
+#             status=status.HTTP_404_NOT_FOUND)
 #         platform.delete(user=request.user)
 #         return Response(status=status.HTTP_204_NO_CONTENT)
 

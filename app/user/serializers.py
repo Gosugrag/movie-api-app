@@ -62,7 +62,8 @@ class UserSerializer(serializers.ModelSerializer):
 
         # Check if password is too similar to email
         if password and password.lower() in email.lower():
-            raise serializers.ValidationError("Password is too similar to the email.")
+            raise serializers.ValidationError("Password is too "
+                                              "similar to the email.")
 
         return attrs
 

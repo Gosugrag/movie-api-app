@@ -4,7 +4,7 @@ Views for the user API
 from django.utils import timezone
 
 from django.contrib.auth import logout
-from rest_framework import generics, authentication, permissions, status, serializers
+from rest_framework import generics, authentication, permissions, status
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.response import Response
@@ -29,8 +29,10 @@ class LogOutView(generics.GenericAPIView):
             return Response(status=status.HTTP_200_OK)
         except Token.DoesNotExist:
             # In case the user doesn't have a token
-            return Response({'detail': 'Token does not exist or already deleted.'},
+            return Response({'detail': 'Token does not '
+                                       'exist or already deleted.'},
                             status=status.HTTP_400_BAD_REQUEST)
+
 
 class CreateUserView(generics.CreateAPIView):
     """Create a new user in the system"""
@@ -44,7 +46,9 @@ class ObtainExpiringAuthToken(ObtainAuthToken):
     def post(self, request):
         serializer = self.serializer_class(data=request.data)
         if serializer.is_valid():
-            token, created =  Token.objects.get_or_create(user=serializer.validated_data['user'])
+            token, created = Token.objects.get_or_create(
+                user=serializer.validated_data['user']
+            )
 
             if not created:
                 # update the created time of the token to keep it valid

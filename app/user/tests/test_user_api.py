@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.urls import reverse
 from django.test import TestCase
 
-from rest_framework.test import APIClient, APITestCase
+from rest_framework.test import APIClient
 from rest_framework import status
 
 
@@ -180,14 +180,17 @@ class PrivateUserTests(TestCase):
         self.assertEqual(res_refreshed.status_code, status.HTTP_200_OK)
         self.assertIn('access', res_refreshed.data)
         self.assertIn('refresh', res_refreshed.data)
-        self.assertNotEqual(res_refreshed.data.get('access'), res.data.get('access'))
+        self.assertNotEqual(res_refreshed.data.get('access'),
+                            res.data.get('access'))
 
     def test_retrieve_profile_success(self):
         """Test retrieving profile for logged in user"""
         res = self.client.get(ME_URL)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual({'name': res.data.get('name'), 'email': res.data.get('email'),},
-                         {'name': self.user.name, 'email': self.user.email,})
+        self.assertEqual({'name': res.data.get('name'),
+                          'email': res.data.get('email'),},
+                         {'name': self.user.name,
+                          'email': self.user.email,})
 
     def test_post_me_not_allowed(self):
         """Test that POST is not allowed for this endpoint"""

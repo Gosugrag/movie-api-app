@@ -30,9 +30,9 @@ class WatchListSerializer(serializers.ModelSerializer):
     title = serializers.CharField(validators=[check_string_len],
                                   max_length=50)
     # platform_name = serializers.SerializerMethodField()
-    platform_name = serializers.CharField(source='platform.name', read_only=True)
+    platform_name = serializers.CharField(source='platform.name',
+                                          read_only=True)
     reviews = ReviewSerializer(many=True, read_only=True)
-
 
     class Meta:
         model = WatchList
@@ -43,7 +43,10 @@ class WatchListSerializer(serializers.ModelSerializer):
     #     return obj.platform.name
 
     # def create(self, validated_data):
-    #     """Create a watchlist object and create a streaming platform as needed"""
+    #     """
+    #     Create a watchlist object and create
+    #     a streaming platform as needed
+    #     """
     #     streaming_platforms = validated_data.pop('streaming_platforms', [])
     #     watchlist = WatchList.objects.create(**validated_data)
     #     auth_user = self.context['request'].user
@@ -88,7 +91,10 @@ class StreamingPlatformSerializer(serializers.ModelSerializer):
 
         if obj.watchlist.exists():
             return [
-                f'{url_scheme}://{hostname}{reverse("watch:watchlist-detail", kwargs={"pk": watch.pk})}'
+                '{}://{}{}'.format(url_scheme,
+                                   hostname,
+                                   reverse("watch:watchlist-detail",
+                                           kwargs={"pk": watch.pk}))
                 for watch in obj.watchlist.all()
             ]
         return []

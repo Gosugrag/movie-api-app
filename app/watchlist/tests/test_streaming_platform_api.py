@@ -23,7 +23,7 @@ def create_user(**params):
     return get_user_model().objects.create_user(**params)
 
 
-def create_streaming_platform(user,**params):
+def create_streaming_platform(user, **params):
     defaults = {
         'name': 'SP1',
         'about': 'About SP1',
@@ -75,7 +75,9 @@ class StreamingPlatformPrivateAPITests(TestCase):
         res = self.client.get(SP_URL)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         sps = StreamingPlatform.objects.all()
-        serializer = StreamingPlatformSerializer(sps, many=True, context={'request': self.request})
+        serializer = StreamingPlatformSerializer(
+            sps, many=True, context={'request': self.request}
+        )
         self.assertEqual(res.data['results'], serializer.data)
 
     def test_create_streaming_platform(self):
@@ -95,7 +97,9 @@ class StreamingPlatformPrivateAPITests(TestCase):
         sp = create_streaming_platform(self.user)
         res = self.client.get(detail_url(sp.pk))
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        serializer = StreamingPlatformSerializer(sp, context={'request': self.request})
+        serializer = StreamingPlatformSerializer(
+            sp, context={'request': self.request}
+        )
         self.assertEqual(res.data, serializer.data)
 
     def test_update_streaming_platform(self):
@@ -110,7 +114,9 @@ class StreamingPlatformPrivateAPITests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         sp = StreamingPlatform.objects.get(name=payload['name'])
         sp.refresh_from_db()
-        serializer = StreamingPlatformSerializer(sp, context={'request': self.request})
+        serializer = StreamingPlatformSerializer(
+            sp, context={'request': self.request}
+        )
         self.assertEqual(res.data, serializer.data)
 
     def test_delete_streaming_platform(self):

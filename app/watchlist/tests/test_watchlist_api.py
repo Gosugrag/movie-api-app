@@ -10,7 +10,7 @@ from rest_framework.test import APIClient
 
 from core.models import WatchList, StreamingPlatform
 
-from watchlist.serializers import WatchListSerializer, StreamingPlatformSerializer
+from watchlist.serializers import WatchListSerializer
 
 from unittest.mock import Mock
 
@@ -19,7 +19,8 @@ WATCHLIST_URL = reverse('watch:watchlist-list')
 
 
 def detail_url(watch_id, **kwargs):
-    return reverse('watch:watchlist-detail', args=[watch_id], **kwargs)
+    return reverse('watch:watchlist-detail', args=[watch_id],
+                   **kwargs)
 
 
 def create_watchlist(user, **params):
