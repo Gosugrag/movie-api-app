@@ -66,7 +66,8 @@ class WatchList(models.Model):
     platform = models.ForeignKey(StreamingPlatform,
                                  on_delete=models.CASCADE,
                                  related_name='watchlist',
-                                 default=None)
+                                 default=None,
+                                 null=True)
 
 
     def __str__(self):

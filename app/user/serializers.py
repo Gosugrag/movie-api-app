@@ -6,17 +6,26 @@ from django.contrib.auth import (
     authenticate,
 )
 from django.utils.translation import gettext as _
-
+from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework import serializers
 
 
 class UserSerializer(serializers.ModelSerializer):
     """Serializer for the user object"""
+    jwt_token = serializers.SerializerMethodField()
 
     class Meta:
         model = get_user_model()
-        fields = ['email', 'password', 'name']
+        fields = ['email', 'password', 'name', 'jwt_token']
         extra_kwargs = {'password': {'write_only': True, 'min_length': 5}}
+
+    def get_jwt_token(self, obj):
+        refresh = RefreshToken.for_user(obj)
+
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }
 
     def create(self, validated_data):
         """Create a new user."""

@@ -3,23 +3,44 @@ from drf_spectacular.utils import extend_schema
 from django.db.models import Avg, Count
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError
+from rest_framework.exceptions import ValidationError, PermissionDenied
 from rest_framework.views import APIView
 from rest_framework import status, viewsets
-from core.permissions import IsOwnerOrReadOnly
+from core.permissions import IsOwnerOrReadOnly, IsAdminOrReadOnly
 from rest_framework import mixins
 from rest_framework import generics
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters
+from core.pagination import WatchListPagination
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.authentication import (BasicAuthentication,
                                            TokenAuthentication)
-from rest_framework.permissions import (IsAuthenticated, AllowAny,
+from rest_framework.permissions import (IsAuthenticated,
+                                        AllowAny,
                                         IsAuthenticatedOrReadOnly,
-                                        IsAdminUser,
-                                        IsAdminOrReadOnly)
+                                        IsAdminUser)
 from core.models import WatchList, StreamingPlatform, Review
 from watchlist.serializers import (WatchListSerializer,
                                    StreamingPlatformSerializer,
                                    ReviewSerializer)
+
+
+class UserReviewListView(mixins.ListModelMixin,
+                         generics.GenericAPIView):
+    """API view for listing Reviews for a specific user."""
+    serializer_class = ReviewSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticatedOrReadOnly | IsAdminUser,)
+
+    def get_queryset(self):
+        user_id = self.kwargs.get('pk')
+        if not user_id:
+            raise PermissionDenied("User ID is required.")
+
+        return Review.objects.filter(user_id=user_id)
+
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
 
 
 class ReviewListView(mixins.ListModelMixin,
@@ -29,10 +50,12 @@ class ReviewListView(mixins.ListModelMixin,
     serializer_class = ReviewSerializer
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticatedOrReadOnly|IsAdminUser,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_fields = ('user',)
 
     def get_queryset(self):
         pk = self.kwargs.get('pk')
-        return Review.objects.filter(watchlist=pk)
+        return Review.objects.filter(watchlist=pk).order_by('-created_at')
 
     # def get_permissions(self):
     #     permissions = {
@@ -112,17 +135,28 @@ class ReviewDetailView(mixins.RetrieveModelMixin,
         return self.destroy(request, *args, **kwargs)
 
 
-class WatchListView(APIView):
+class WatchListView(mixins.ListModelMixin,
+                    mixins.CreateModelMixin,
+                    generics.GenericAPIView):
     """API view for listing Movie object"""
     serializer_class = WatchListSerializer
-    authentication_classes = (TokenAuthentication,)
+    authentication_classes = (TokenAuthentication,) # JWTAuthentication
     permission_classes = (IsAdminOrReadOnly,)
+    throttle_scope = 'burst'
+    filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter,)
+    filterset_fields = ('active','platform__name',)
+    search_fields = ('user__name', 'platform__name',)
+    ordering_fields = ('user__name', 'platform__name', 'title')
+    pagination_class = WatchListPagination
+    ordering = ('title',)
 
     def get_queryset(self):
-        return WatchList.objects.all().order_by('title').annotate(
-            average_rating=Avg('reviews__rating'),
-            total_reviews=Count('reviews')
-        )
+        queryset = WatchList.objects.all()
+        # platform_name = self.request.query_params.get('platform_name')
+        # print(platform_name)
+        # if platform_name:
+        #     queryset = queryset.filter(platform__name=platform_name)
+        return queryset
 
     # def get_permissions(self):
     #     permissions = {
@@ -131,17 +165,14 @@ class WatchListView(APIView):
     #     }
     #     return permissions.get(self.request.method, [AllowAny()])
 
-    def get(self, request, format=None):
-        watchlist = WatchList.objects.all()
-        serializer = WatchListSerializer(watchlist, many=True)
-        return Response(serializer.data)
+    def get(self, request, *args, **kwargs):
+        return self.list(request, *args, **kwargs)
 
-    def post(self, request, format=None):
-        serializer = WatchListSerializer(data=request.data, context={'request': request})
-        if serializer.is_valid():
-            serializer.save(user=request.user)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+
+    def post(self, request, *args, **kwargs):
+        return self.create(request, *args, **kwargs)
 
 
 class WatchListDetailView(APIView):
@@ -188,6 +219,18 @@ class WatchListDetailView(APIView):
                             status=status.HTTP_404_NOT_FOUND)
         movie.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def patch(self, request, pk, format=None):
+        try:
+            movie = WatchList.objects.get(pk=pk)
+        except WatchList.DoesNotExist:
+            return Response({"error": "Movie not found"},
+                            status=status.HTTP_404_NOT_FOUND)
+        serializer = WatchListSerializer(movie, data=request.data)
+        if serializer.is_valid():
+            serializer.save(user=request.user)
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class StreamingPlatformViewSet(viewsets.ModelViewSet):

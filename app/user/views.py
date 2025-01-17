@@ -1,10 +1,10 @@
 """
 Views for the user API
 """
-import datetime
+from django.utils import timezone
 
 from django.contrib.auth import logout
-from rest_framework import generics, authentication, permissions, status
+from rest_framework import generics, authentication, permissions, status, serializers
 from rest_framework.authtoken.models import Token
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.response import Response
@@ -48,7 +48,7 @@ class ObtainExpiringAuthToken(ObtainAuthToken):
 
             if not created:
                 # update the created time of the token to keep it valid
-                token.created = datetime.datetime.utcnow()
+                token.created = timezone.now()
                 token.save()
 
             return Response({'token': token.key})

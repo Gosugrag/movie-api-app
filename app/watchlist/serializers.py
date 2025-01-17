@@ -29,17 +29,18 @@ class WatchListSerializer(serializers.ModelSerializer):
     len_title = serializers.SerializerMethodField()
     title = serializers.CharField(validators=[check_string_len],
                                   max_length=50)
-    platform_name = serializers.SerializerMethodField()
+    # platform_name = serializers.SerializerMethodField()
+    platform_name = serializers.CharField(source='platform.name', read_only=True)
     reviews = ReviewSerializer(many=True, read_only=True)
 
 
     class Meta:
         model = WatchList
-        read_only_fields = ('id', 'total_reviews', 'average_rating',)
-        exclude = ('user',)
+        fields = '__all__'
+        read_only_fields = ('id', 'total_reviews', 'average_rating', 'user')
 
-    def get_platform_name(self, obj):
-        return obj.platform.name
+    # def get_platform_name(self, obj):
+    #     return obj.platform.name
 
     # def create(self, validated_data):
     #     """Create a watchlist object and create a streaming platform as needed"""

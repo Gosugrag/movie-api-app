@@ -1,16 +1,19 @@
 """
 Tests for the user API endpoints
 """
-from django.test import TestCase
 from django.contrib.auth import get_user_model
 from django.urls import reverse
+from django.test import TestCase
 
-from rest_framework.test import APIClient
+from rest_framework.test import APIClient, APITestCase
 from rest_framework import status
 
 
 CREATE_USER_URL = reverse('user:create')
 TOKEN_URL = reverse('user:token')
+LOGOUT_URL = reverse('user:log-out')
+JWT_TOKEN_URL = reverse('user:token_obtain_pair')
+JWT_TOKEN_REFRESH = reverse('user:token_refresh')
 ME_URL = reverse('user:me')
 
 
@@ -30,12 +33,12 @@ class PublicUserTests(TestCase):
         payload = {
             'email': 'test@example.com',
             'password': 'test123',
-            'name': 'Test Name',
+            'name': 'AbobaMessi',
         }
 
         res = self.client.post(CREATE_USER_URL, payload)
         self.assertEqual(res.status_code, status.HTTP_201_CREATED)
-        user = get_user_model().objects.get(**res.data)
+        user = get_user_model().objects.get(email=payload['email'])
         self.assertTrue(user.check_password(payload['password']))
         self.assertNotIn('password', res.data)
 
@@ -83,6 +86,25 @@ class PublicUserTests(TestCase):
         self.assertIn('token', res.data)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
 
+    def test_jwt_token_for_user(self):
+        """Test that a JWT token is created for the user."""
+        user_details = {
+            'name': 'Test Name',
+            'email': 'test@example.com',
+            'password': 'test-user-password123',
+        }
+
+        create_user(**user_details)
+
+        payload = {
+            'email': user_details['email'],
+            'password': user_details['password'],
+        }
+        res = self.client.post(JWT_TOKEN_URL, payload)
+        self.assertIn('refresh', res.data)
+        self.assertIn('access', res.data)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
     def test_create_token_invalid_credentials(self):
         """Test that token is not created for invalid credentials."""
         create_user(email='test@example.com', password='test123')
@@ -122,15 +144,50 @@ class PrivateUserTests(TestCase):
         self.client = APIClient()
         self.client.force_authenticate(user=self.user)
 
+    def test_create_token_for_user(self):
+        """Test that a token is created for the user."""
+        payload = {
+            'email': 'test@example.com',
+            'password': 'test123',
+        }
+        res = self.client.post(TOKEN_URL, payload)
+
+        self.assertIn('token', res.data)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    def test_create_jwt_token_for_user(self):
+        """Test that a JWT token is created for the user."""
+        payload = {
+            'email': 'test@example.com',
+            'password': 'test123',
+        }
+        res = self.client.post(JWT_TOKEN_URL, payload)
+        self.assertIn('refresh', res.data)
+        self.assertIn('access', res.data)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    def test_refresh_jwt_token_for_user(self):
+        """Test that a JWT token is refreshed for the user."""
+        payload = {
+            'email': 'test@example.com',
+            'password': 'test123',
+        }
+        res = self.client.post(JWT_TOKEN_URL, payload)
+        refresh = res.data['refresh']
+
+        payload.update({'refresh': refresh})
+        res_refreshed = self.client.post(JWT_TOKEN_REFRESH, payload)
+        self.assertEqual(res_refreshed.status_code, status.HTTP_200_OK)
+        self.assertIn('access', res_refreshed.data)
+        self.assertIn('refresh', res_refreshed.data)
+        self.assertNotEqual(res_refreshed.data.get('access'), res.data.get('access'))
+
     def test_retrieve_profile_success(self):
         """Test retrieving profile for logged in user"""
         res = self.client.get(ME_URL)
-
         self.assertEqual(res.status_code, status.HTTP_200_OK)
-        self.assertEqual(res.data, {
-            'name': self.user.name,
-            'email': self.user.email,
-        })
+        self.assertEqual({'name': res.data.get('name'), 'email': res.data.get('email'),},
+                         {'name': self.user.name, 'email': self.user.email,})
 
     def test_post_me_not_allowed(self):
         """Test that POST is not allowed for this endpoint"""
@@ -141,13 +198,23 @@ class PrivateUserTests(TestCase):
     def test_update_user_profile(self):
         """Test updating the user profile for authenticated user"""
         payload = {
-            'name': 'Updated Name',
+            'name': 'Updated',
             'password': 'newpassword123',
         }
 
         res = self.client.patch(ME_URL, payload)
-
         self.user.refresh_from_db()
         self.assertEqual(self.user.name, payload['name'])
         self.assertTrue(self.user.check_password(payload['password']))
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+
+    def test_log_out_user(self):
+        """Test logging out of user"""
+
+        payload = {
+            'name': 'Updated',
+            'password': 'newpassword123',
+        }
+
+        res = self.client.post(LOGOUT_URL, payload)
         self.assertEqual(res.status_code, status.HTTP_200_OK)

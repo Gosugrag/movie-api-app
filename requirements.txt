@@ -5,3 +5,4 @@ drf-spectacular>=0.28.0,<0.29.0
 django-profanity-filter>=0.2.1,<0.3.0
 pytz==2024.2
 djangorestframework-simplejwt>=5.4.0,<5.5.0
+django-filter>=24.3,<24.4
